@@ -22,12 +22,25 @@
 colcon build
 ```
 
-## Run
-
 ```sh
-ros2 run turtlesim turtlesim_node
+source ./install/setup.bash 
 ```
 
+## Run
+
+### Keyboard Teleop Control
+```sh
+ros2 launch turtlesim_games_bringup keyboard_turtlesim.launch.py
+```
+
+### Joystick Teleop Control
+```sh
+ros2 launch turtlesim_games_bringup joystick_turtlesim.launch.py
+```
+- left stick vertical - linear x movement
+- right stick horizontal - angular z movement
+- left back button - enable movement
+- right back button - slow movement
 
 
 # 📝 Documentation
