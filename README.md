@@ -19,6 +19,7 @@
 
 ## Build
 ```sh
+cd turtlesim_games_ws
 colcon build
 ```
 
@@ -28,12 +29,17 @@ source ./install/setup.bash
 
 ## Run
 
-### Keyboard Teleop Control
+### Turtlesim Catch Them All
+```sh
+ros2 launch turtlesim_games_bringup catch_them_all_turtlesim.launch.py
+```
+
+### Turtlesim Keyboard Teleop Control
 ```sh
 ros2 launch turtlesim_games_bringup keyboard_turtlesim.launch.py
 ```
 
-### Joystick Teleop Control
+### Turtlesim Joystick Teleop Control
 ```sh
 ros2 launch turtlesim_games_bringup joystick_turtlesim.launch.py
 ```
