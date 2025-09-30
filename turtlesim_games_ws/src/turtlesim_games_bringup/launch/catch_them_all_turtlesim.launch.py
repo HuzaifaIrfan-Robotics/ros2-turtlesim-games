@@ -10,7 +10,7 @@ def generate_launch_description():
     turtlesim_node = Node(
         package='turtlesim',
         executable='turtlesim_node',
-        name='sim'
+        name='turtlesim'
     )
     
     # Launch spawner node

@@ -27,7 +27,7 @@ def generate_launch_description():
         Node(
             package='teleop_twist_joy',
             executable='teleop_node',
-            name='teleop_twist_joy_node',
+            name='teleop_node',
             parameters=[{
                 'axis_linear.x': 1,         # left stick vertical
                 'scale_linear.x': 2.0,

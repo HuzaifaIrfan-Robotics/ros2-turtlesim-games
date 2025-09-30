@@ -10,13 +10,13 @@ def generate_launch_description():
     turtlesim_node = Node(
         package='turtlesim',
         executable='turtlesim_node',
-        name='sim'
+        name='turtlesim'
     )
     # Launch teleop_key node
     teleop_key_node = Node(
         package='turtlesim',
         executable='turtle_teleop_key',
-        name='teleop',
+        name='turtle_teleop_key',
         prefix='xterm -e',   # ensures teleop runs in a new terminal
         respawn=True,             # <-- will auto-restart if it crashes
         respawn_delay=2.0
