@@ -18,15 +18,11 @@ def generate_launch_description():
         package='turtlesim_catch_them_all',
         executable='spawner',
         name='spawner',
-        respawn=True,
-        respawn_delay=2.0
     )
     controller_node = Node(
         package='turtlesim_catch_them_all',
         executable='controller',
         name='controller',
-        respawn=True,
-        respawn_delay=2.0
     )
 
     ld.add_action(turtlesim_node)
