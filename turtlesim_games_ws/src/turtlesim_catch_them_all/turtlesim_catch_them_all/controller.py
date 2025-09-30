@@ -9,7 +9,7 @@ from PyQt6.QtCore import QTimer
 import math
 from turtlesim.msg import Pose
 from geometry_msgs.msg import Twist
-from turtlesim.srv import Spawn
+from turtlesim.srv import Spawn , Kill
 
 import random
 
@@ -17,28 +17,28 @@ from functools import partial
 
 class TurtlesimCatchThemAllController(Node):
     def __init__(self):
-        super().__init__("turtlesim_catch_them_all_controller")
-        self.get_logger().info("Turtlesim Catch Them All Controller is active")
+        super().__init__("master_turtle_controller")
 
-        # def log_pose_topics():
-        #     topics = self.get_topic_names_and_types()
-        #     pose_topics = [name for name, types in topics if name.endswith('/pose')]
-        #     self.get_logger().info(f"Pose topics: {pose_topics}")
-
-        # self.timer = self.create_timer(1.0, log_pose_topics)
+        self.master_turtle_name = "master"
 
         self.spawn_turtle_client_ = self.create_client(Spawn, "spawn")
-        self.call_spawn_turtle()
+        self.call_spawn_master_turtle()
+        self.kill_turtle_client_ = self.create_client(Kill, "kill")
 
+        self.target_turtle_name = ""
         self.target_x = 2.0
         self.target_y = 8.0
         self.pose_: Pose = None
         self.cmd_vel_publisher_ = self.create_publisher(
-            Twist, "/master/cmd_vel", 10)
+            Twist, f"/{self.master_turtle_name}/cmd_vel", 10)
         self.pose_subscriber_ = self.create_subscription(
-            Pose, "/master/pose", self.callback_pose, 10)
+            Pose, f"/{self.master_turtle_name}/pose", self.callback_pose, 10)
         self.control_loop_timer_ = self.create_timer(
             0.1, self.control_loop)
+        
+        self.get_logger().info(f"{self.master_turtle_name} Turtlesim Catch Them All Controller is active")
+
+
 
     def callback_pose(self, pose: Pose):
         self.pose_ = pose
@@ -53,9 +53,9 @@ class TurtlesimCatchThemAllController(Node):
 
         cmd = Twist()
 
-        if distance > 1:
+        if distance > 0.5:
             # position
-            cmd.linear.x = 2*distance
+            cmd.linear.x = 1.5*distance
 
             # orientation
             goal_theta = math.atan2(dist_y, dist_x)
@@ -64,30 +64,97 @@ class TurtlesimCatchThemAllController(Node):
                 diff -= 2*math.pi
             elif diff < -math.pi:
                 diff += 2*math.pi
-            cmd.angular.z = 6*diff
+            cmd.angular.z = 2*diff
         else:
             # target reached
             cmd.linear.x = 0.0
             cmd.angular.z = 0.0
+            self.kill_target_turtle()
+
+
 
         self.cmd_vel_publisher_.publish(cmd)
 
 
+    def kill_target_turtle(self):
 
-    def call_spawn_turtle(self):
+        if self.target_turtle_name:
+            self.get_logger().info(f"Killing turtle: {self.target_turtle_name}")
+            self.call_kill_target_turtle()
+
+        self.get_next_target_turtle()
+
+
+
+
+
+    def get_next_target_turtle(self):
+
+        topics = self.get_topic_names_and_types()
+        pose_topics = [name for name, types in topics if name.endswith('/pose') and name.startswith('/turtle')]
+        self.get_logger().info(f"Pose topics: {pose_topics}")
+
+        if len(pose_topics) > 0:
+            target_turtle_pose_topic = random.choice(pose_topics)
+            target_turtle_name = target_turtle_pose_topic.split('/')[1]
+
+
+            self.target_pose_subscription_ = self.create_subscription(
+                Pose,
+                target_turtle_pose_topic,
+                partial(self.callback_target_pose, target_turtle_name=target_turtle_name),
+                10
+            )
+
+
+
+
+    def callback_target_pose(self, pose: Pose, target_turtle_name=None):
+        self.target_x = pose.x
+        self.target_y = pose.y
+        if target_turtle_name:
+            self.target_turtle_name = target_turtle_name
+        self.get_logger().info(f"New target turtle: {self.target_turtle_name} {self.target_x} {self.target_y}")
+        if hasattr(self, 'target_pose_subscription_'):
+            self.destroy_subscription(self.target_pose_subscription_)
+
+
+
+    def call_kill_target_turtle(self):
+        while not self.kill_turtle_client_.wait_for_service(1.0):
+            self.get_logger().warn("Waiting for Kill server...")
+
+        request = Kill.Request()
+        request.name = self.target_turtle_name
+        self.target_turtle_name = ""
+
+
+        future = self.kill_turtle_client_.call_async(request)
+        future.add_done_callback(
+            partial(self.callback_call_kill_target_turtle, request=request))
+
+    def callback_call_kill_target_turtle(self, future, request):
+        response = future.result()
+        self.get_logger().info("Killed turtle at (" +
+                               str(self.target_x) + ", " + str(self.target_y) + ") with name '" +
+                               str(request.name) + "'")
+
+
+
+    def call_spawn_master_turtle(self):
         while not self.spawn_turtle_client_.wait_for_service(1.0):
             self.get_logger().warn("Waiting for Spawn server...")
 
         request = Spawn.Request()
         request.x = random.uniform(1.0, 10.0)
         request.y = random.uniform(1.0, 10.0)
-        request.name = "master"
+        request.name = self.master_turtle_name
 
         future = self.spawn_turtle_client_.call_async(request)
         future.add_done_callback(
-            partial(self.callback_call_spawn_turtle, request=request))
+            partial(self.callback_call_spawn_master_turtle, request=request))
 
-    def callback_call_spawn_turtle(self, future, request):
+    def callback_call_spawn_master_turtle(self, future, request):
         response = future.result()
         self.get_logger().info("Spawned turtle at (" +
                                str(request.x) + ", " + str(request.y) + ") with name '" +
@@ -95,25 +162,11 @@ class TurtlesimCatchThemAllController(Node):
 
 
 
-class MainWindow(QMainWindow):
-    def __init__(self, node: TurtlesimCatchThemAllController):
-        super().__init__()
-        self.setWindowTitle("Turtlesim Catch Them All Controller")
-        self.setCentralWidget(QLabel("Controller is running..."))
-        self.node = node
 
 def main(args=None):
     rclpy.init(args=args)
-    app = QApplication(sys.argv)
     node = TurtlesimCatchThemAllController()
-    window = MainWindow(node)
-    window.show()
-
-    timer = QTimer()
-    timer.timeout.connect(lambda: rclpy.spin_once(node, timeout_sec=0))
-    timer.start(50)  # Spin ROS every 50 ms
-
-    app.exec()
+    rclpy.spin(node)
     node.destroy_node()
     rclpy.shutdown()
 
