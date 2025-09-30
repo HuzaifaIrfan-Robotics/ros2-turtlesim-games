@@ -17,17 +17,18 @@ from functools import partial
 
 class TurtlesimCatchThemAllController(Node):
     def __init__(self):
-        super().__init__("master_turtle_controller")
+        super().__init__("controller")
+        self.namespace_ = self.get_namespace()
 
-        self.master_turtle_name = "master"
+        if self.namespace_ == "/":
+            self.master_turtle_name = "player"
+        else:
+            self.master_turtle_name = f"{self.namespace_}".replace("/", "_").strip("_")
 
-        self.spawn_turtle_client_ = self.create_client(Spawn, "spawn")
+        self.spawn_turtle_client_ = self.create_client(Spawn, "/spawn")
         self.call_spawn_master_turtle()
-        self.kill_turtle_client_ = self.create_client(Kill, "kill")
 
-        self.target_turtle_name = ""
-        self.target_x = 2.0
-        self.target_y = 8.0
+
         self.pose_: Pose = None
         self.cmd_vel_publisher_ = self.create_publisher(
             Twist, f"/{self.master_turtle_name}/cmd_vel", 10)
@@ -36,6 +37,11 @@ class TurtlesimCatchThemAllController(Node):
         self.control_loop_timer_ = self.create_timer(
             0.1, self.control_loop)
         
+        self.kill_turtle_client_ = self.create_client(Kill, "/kill")
+        self.target_turtle_name = ""
+        self.target_x = 2.0
+        self.target_y = 8.0
+
         self.get_logger().info(f"{self.master_turtle_name} Turtlesim Catch Them All Controller is active")
 
 

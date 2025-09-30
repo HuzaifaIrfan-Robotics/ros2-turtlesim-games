@@ -14,7 +14,7 @@ from PyQt6.QtWidgets import QSpinBox
 
 class TurtlesimCatchThemAllSpawner(Node):
     def __init__(self):
-        super().__init__("turtlesim_catch_them_all_spawner")
+        super().__init__("spawner")
 
         self.spawn_turtle_client_ = self.create_client(Spawn, "spawn")
         self.spawn_turtle_timer_ = self.create_timer(5.0, self.call_spawn_turtle)
@@ -44,7 +44,7 @@ class TurtlesimCatchThemAllSpawner(Node):
 class MainWindow(QMainWindow):
     def __init__(self, node: TurtlesimCatchThemAllSpawner):
         super().__init__()
-        self.setWindowTitle("Turtlesim Catch Them All Spawner")
+        self.setWindowTitle("Spawner Turtlesim")
         
         self.node = node
 
